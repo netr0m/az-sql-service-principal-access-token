@@ -2,7 +2,7 @@ import struct
 import os
 
 import pyodbc
-from azure.identity import InteractiveBrowserCredential, ClientSecretCredential
+from azure.identity import ClientSecretCredential, InteractiveBrowserCredential
 
 # MSAL
 TENANT_ID = os.getenv("AD_TENANT_ID")
@@ -24,6 +24,9 @@ CONNSTR = f"Driver={DRIVER};Server={SERVER};Database={DATABASE}"
 
 
 def prepare_token(access_token: str) -> bytes:
+    """
+    Prepare the token for use as 'SQL_COPT_SS_ACCESS_TOKEN'
+    """
     exptoken = b""
     for i in bytes(access_token, "UTF-8"):
         exptoken += bytes({i})
@@ -34,16 +37,25 @@ def prepare_token(access_token: str) -> bytes:
 
 
 def connect(tokenstruct: bytes) -> pyodbc.Connection:
+    """
+    Create a connection to the database using the CONNSTR
+    """
     return pyodbc.connect(CONNSTR, attrs_before={ SQL_COPT_SS_ACCESS_TOKEN: tokenstruct })
 
 
 def execute_query(con: pyodbc.Connection) -> any:
+    """
+    Test execution using a generic query
+    """
     with con.cursor() as cur:
         cur.execute("SELECT getdate()")
         return cur.fetchone()
 
 
 def retrieve_access_token() -> str:
+    """
+    Retrieve an access token from AAD using the service principal
+    """
     if TENANT_ID and CLIENT_ID and CLIENT_SECRET:
         print("Using service principal")
         credentials = ClientSecretCredential(TENANT_ID, CLIENT_ID, CLIENT_SECRET)
